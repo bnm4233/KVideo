@@ -74,6 +74,28 @@ export function NativeAdBanner({
 }
 
 /**
+ * 内容流广告的插入间隔：每 N 条内容之后出现一个广告。
+ * 想调密度改这一个数字即可（数值越大越克制）。
+ */
+export const IN_FEED_AD_INTERVAL = 10;
+
+/**
+ * 内容流广告条。
+ *
+ * 会插在两段内容网格之间（而不是塞进网格内部），
+ * 因为网格内部插入整行元素会把所在行挤出一个空位，很难看。
+ */
+export function InFeedAd({ className }: { className?: string }) {
+  return (
+    <div className={className}>
+      <div className="flex w-full items-center justify-center">
+        <NativeAdBanner height={250} className="w-full" />
+      </div>
+    </div>
+  );
+}
+
+/**
  * 宽屏（≥1536px）两侧的竖向广告。
  * 页面是居中单列布局，超宽屏两侧的留白刚好可以放 160 宽的竖幅。
  * 观看类页面（播放 / 直播）不展示，避免干扰。

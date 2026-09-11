@@ -1,12 +1,18 @@
 'use client';
 
-import { useState, useRef, useCallback, useMemo, memo, useEffect } from 'react';
+import { Fragment, useState, useRef, useCallback, useMemo, memo, useEffect } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { VideoCard } from './VideoCard';
 import { VideoGroupCard, GroupedVideo } from './VideoGroupCard';
 import { settingsStore } from '@/lib/store/settings-store';
 import { Video } from '@/lib/types';
 import { useResolutionProbe } from '@/lib/hooks/useResolutionProbe';
+import { InFeedAd, IN_FEED_AD_INTERVAL } from '@/components/ads/AdSlots';
+
+/** 网格条目：普通卡片或聚合卡片 */
+type GridItem =
+  | { kind: 'group'; group: GroupedVideo; cardId: string }
+  | { kind: 'video'; video: Video; videoUrl: string; cardId: string };
 
 interface VideoGridProps {
   videos: Video[];
@@ -187,52 +193,78 @@ export const VideoGrid = memo(function VideoGrid({
 
   const totalItems = displayMode === 'grouped' ? groupItems.length : videoItems.length;
 
+  // 当前可见条目（按展示模式统一成一种结构，方便切块）
+  const visibleItems: GridItem[] = useMemo(() => {
+    if (displayMode === 'grouped') {
+      return groupItems
+        .slice(0, visibleCount)
+        .map(({ group, cardId }) => ({ kind: 'group' as const, group, cardId }));
+    }
+    return videoItems
+      .slice(0, visibleCount)
+      .map(({ video, videoUrl, cardId }) => ({ kind: 'video' as const, video, videoUrl, cardId }));
+  }, [displayMode, groupItems, videoItems, visibleCount]);
+
+  // 按固定条数切块，广告插在块与块之间（高级模式不展示广告）
+  const adChunks: GridItem[][] = useMemo(() => {
+    const result: GridItem[][] = [];
+    for (let i = 0; i < visibleItems.length; i += IN_FEED_AD_INTERVAL) {
+      result.push(visibleItems.slice(i, i + IN_FEED_AD_INTERVAL));
+    }
+    return result;
+  }, [visibleItems]);
+
   return (
     <>
-      <div
-        ref={gridRef}
-        className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6 gap-3 md:gap-4 lg:gap-6 max-w-[1920px] mx-auto ${className}`}
-        role="list"
-        aria-label="视频搜索结果"
-      >
-        {displayMode === 'grouped' ? (
-          // Grouped mode
-          groupItems.slice(0, visibleCount).map(({ group, cardId }) => {
-            const isActive = activeCardId === cardId;
-            return (
-              <VideoGroupCard
-                key={cardId}
-                group={group}
-                cardId={cardId}
-                isActive={isActive}
-                onCardClick={handleCardClick}
-                isPremium={isPremium}
-                latencies={latencies}
-                resolution={resolutions[`${group.representative.source}:${group.representative.vod_id}`]}
-                isProbing={isProbing && !resolutions[`${group.representative.source}:${group.representative.vod_id}`]}
-              />
-            );
-          })
-        ) : (
-          // Normal mode
-          videoItems.slice(0, visibleCount).map(({ video, videoUrl, cardId }) => {
-            const isActive = activeCardId === cardId;
-            return (
-              <VideoCard
-                key={cardId}
-                video={video}
-                videoUrl={videoUrl}
-                cardId={cardId}
-                isActive={isActive}
-                onCardClick={handleCardClick}
-                isPremium={isPremium}
-                latencies={latencies}
-                resolution={resolutions[`${video.source}:${video.vod_id}`]}
-                isProbing={isProbing && !resolutions[`${video.source}:${video.vod_id}`]}
-              />
-            );
-          })
-        )}
+      <div className="space-y-3 md:space-y-4 lg:space-y-6">
+        {adChunks.map((chunk, chunkIndex) => (
+          <Fragment key={`chunk-${chunkIndex}`}>
+            <div
+              ref={chunkIndex === 0 ? gridRef : undefined}
+              className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-6 gap-3 md:gap-4 lg:gap-6 max-w-[1920px] mx-auto ${className}`}
+              role="list"
+              aria-label="视频搜索结果"
+            >
+              {chunk.map((item) => {
+                if (item.kind === 'group') {
+                  const isActive = activeCardId === item.cardId;
+                  const resolution = resolutions[`${item.group.representative.source}:${item.group.representative.vod_id}`];
+                  return (
+                    <VideoGroupCard
+                      key={item.cardId}
+                      group={item.group}
+                      cardId={item.cardId}
+                      isActive={isActive}
+                      onCardClick={handleCardClick}
+                      isPremium={isPremium}
+                      latencies={latencies}
+                      resolution={resolution}
+                      isProbing={isProbing && !resolution}
+                    />
+                  );
+                }
+
+                const isActive = activeCardId === item.cardId;
+                const resolution = resolutions[`${item.video.source}:${item.video.vod_id}`];
+                return (
+                  <VideoCard
+                    key={item.cardId}
+                    video={item.video}
+                    videoUrl={item.videoUrl}
+                    cardId={item.cardId}
+                    isActive={isActive}
+                    onCardClick={handleCardClick}
+                    isPremium={isPremium}
+                    latencies={latencies}
+                    resolution={resolution}
+                    isProbing={isProbing && !resolution}
+                  />
+                );
+              })}
+            </div>
+            {!isPremium && chunkIndex < adChunks.length - 1 && <InFeedAd />}
+          </Fragment>
+        ))}
       </div>
 
       {/* Load more trigger */}

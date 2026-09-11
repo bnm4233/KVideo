@@ -3,8 +3,10 @@
  * Handles movie display and loading states
  */
 
+import { Fragment } from 'react';
 import { MovieCard } from './MovieCard';
 import { Icons } from '@/components/ui/Icon';
+import { InFeedAd, IN_FEED_AD_INTERVAL } from '@/components/ads/AdSlots';
 
 interface DoubanMovie {
   id: string;
@@ -35,15 +37,28 @@ export function MovieGrid({
     return <MovieGridEmpty />;
   }
 
+  // 按固定条数切块，广告插在块与块之间，避免整行插入把某一行顶出空位
+  const chunks: DoubanMovie[][] = [];
+  for (let i = 0; i < movies.length; i += IN_FEED_AD_INTERVAL) {
+    chunks.push(movies.slice(i, i + IN_FEED_AD_INTERVAL));
+  }
+
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-        {movies.map((movie) => (
-          <MovieCard
-            key={movie.id}
-            movie={movie}
-            onMovieClick={onMovieClick}
-          />
+      <div className="space-y-4 md:space-y-6">
+        {chunks.map((chunk, chunkIndex) => (
+          <Fragment key={`chunk-${chunkIndex}`}>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
+              {chunk.map((movie) => (
+                <MovieCard
+                  key={movie.id}
+                  movie={movie}
+                  onMovieClick={onMovieClick}
+                />
+              ))}
+            </div>
+            {chunkIndex < chunks.length - 1 && <InFeedAd />}
+          </Fragment>
         ))}
       </div>
 
