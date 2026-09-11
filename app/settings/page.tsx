@@ -15,6 +15,7 @@ import { AppVersionSettings } from '@/components/settings/AppVersionSettings';
 import { UserSourceSettings } from '@/components/settings/UserSourceSettings';
 import { UserDanmakuSettings } from '@/components/settings/UserDanmakuSettings';
 import { PermissionGate } from '@/components/PermissionGate';
+import { SettingsPasswordGate } from '@/components/SettingsPasswordGate';
 import { hasPermission } from '@/lib/store/auth-store';
 import { useSettingsPage } from './hooks/useSettingsPage';
 
@@ -76,138 +77,140 @@ export default function SettingsPage() {
   } = useSettingsPage();
 
   return (
-    <div className="min-h-screen bg-[var(--bg-color)] bg-[image:var(--bg-image)] bg-fixed">
-      <div className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
-        {/* Header */}
-        <SettingsHeader />
+    <SettingsPasswordGate>
+      <div className="min-h-screen bg-[var(--bg-color)] bg-[image:var(--bg-image)] bg-fixed">
+        <div className="container mx-auto px-4 py-8 max-w-4xl space-y-8">
+          {/* Header */}
+          <SettingsHeader />
 
-        <AppVersionSettings />
+          <AppVersionSettings />
 
-        {/* Account Settings */}
-        <AccountSettings />
+          {/* Account Settings */}
+          <AccountSettings />
 
-        {/* Player Settings */}
-        <PermissionGate permission="player_settings">
-          <PlayerSettings
-            fullscreenType={fullscreenType}
-            onFullscreenTypeChange={handleFullscreenTypeChange}
-            proxyMode={proxyMode}
-            onProxyModeChange={handleProxyModeChange}
-            seekStepSeconds={seekStepSeconds}
-            onSeekStepSecondsChange={handleSeekStepSecondsChange}
-            videoTogetherEnabled={videoTogetherEnabled}
-            onVideoTogetherEnabledChange={handleVideoTogetherEnabledChange}
-            danmakuApiUrl={danmakuApiUrl}
-            onDanmakuApiUrlChange={handleDanmakuApiUrlChange}
-            danmakuOpacity={danmakuOpacity}
-            onDanmakuOpacityChange={handleDanmakuOpacityChange}
-            danmakuFontSize={danmakuFontSize}
-            onDanmakuFontSizeChange={handleDanmakuFontSizeChange}
-            danmakuDisplayArea={danmakuDisplayArea}
-            onDanmakuDisplayAreaChange={handleDanmakuDisplayAreaChange}
-            showDanmakuApi={hasPermission('danmaku_api')}
+          {/* Player Settings */}
+          <PermissionGate permission="player_settings">
+            <PlayerSettings
+              fullscreenType={fullscreenType}
+              onFullscreenTypeChange={handleFullscreenTypeChange}
+              proxyMode={proxyMode}
+              onProxyModeChange={handleProxyModeChange}
+              seekStepSeconds={seekStepSeconds}
+              onSeekStepSecondsChange={handleSeekStepSecondsChange}
+              videoTogetherEnabled={videoTogetherEnabled}
+              onVideoTogetherEnabledChange={handleVideoTogetherEnabledChange}
+              danmakuApiUrl={danmakuApiUrl}
+              onDanmakuApiUrlChange={handleDanmakuApiUrlChange}
+              danmakuOpacity={danmakuOpacity}
+              onDanmakuOpacityChange={handleDanmakuOpacityChange}
+              danmakuFontSize={danmakuFontSize}
+              onDanmakuFontSizeChange={handleDanmakuFontSizeChange}
+              danmakuDisplayArea={danmakuDisplayArea}
+              onDanmakuDisplayAreaChange={handleDanmakuDisplayAreaChange}
+              showDanmakuApi={hasPermission('danmaku_api')}
+            />
+          </PermissionGate>
+
+          {/* Display Settings */}
+          <DisplaySettings
+            realtimeLatency={realtimeLatency}
+            searchDisplayMode={searchDisplayMode}
+            rememberScrollPosition={rememberScrollPosition}
+            onRealtimeLatencyChange={handleRealtimeLatencyChange}
+            onSearchDisplayModeChange={handleSearchDisplayModeChange}
+            onRememberScrollPositionChange={handleRememberScrollPositionChange}
+            locale={locale}
+            onLocaleChange={handleLocaleChange}
+            blockedCategories={blockedCategories}
+            onBlockedCategoriesChange={handleBlockedCategoriesChange}
           />
-        </PermissionGate>
 
-        {/* Display Settings */}
-        <DisplaySettings
-          realtimeLatency={realtimeLatency}
-          searchDisplayMode={searchDisplayMode}
-          rememberScrollPosition={rememberScrollPosition}
-          onRealtimeLatencyChange={handleRealtimeLatencyChange}
-          onSearchDisplayModeChange={handleSearchDisplayModeChange}
-          onRememberScrollPositionChange={handleRememberScrollPositionChange}
-          locale={locale}
-          onLocaleChange={handleLocaleChange}
-          blockedCategories={blockedCategories}
-          onBlockedCategoriesChange={handleBlockedCategoriesChange}
+          {/* Per-User Source Settings (visible to all logged-in users) */}
+          <UserSourceSettings />
+
+          {/* Per-User Danmaku Settings (visible to all logged-in users) */}
+          <UserDanmakuSettings />
+
+          {/* Source Management */}
+          <PermissionGate permission="source_management">
+            <SourceSettings
+              sources={sources}
+              onSourcesChange={handleSourcesChange}
+              onRestoreDefaults={() => setIsRestoreDefaultsDialogOpen(true)}
+              onAddSource={() => {
+                setEditingSource(null);
+                setIsAddModalOpen(true);
+              }}
+              onEditSource={handleEditSource}
+            />
+          </PermissionGate>
+
+          {/* Sort Options */}
+          <SortSettings
+            sortBy={sortBy}
+            onSortChange={handleSortChange}
+          />
+
+          {/* Data Management */}
+          <PermissionGate permission="data_management">
+            <DataSettings
+              onExport={() => setIsExportModalOpen(true)}
+              onImport={() => setIsImportModalOpen(true)}
+              onReset={() => setIsResetDialogOpen(true)}
+            />
+          </PermissionGate>
+        </div>
+
+        {/* Modals */}
+        <AddSourceModal
+          isOpen={isAddModalOpen}
+          onClose={() => {
+            setIsAddModalOpen(false);
+            setEditingSource(null);
+          }}
+          onAdd={handleAddSource}
+          existingIds={sources.map(s => s.id)}
+          initialValues={editingSource}
         />
 
-        {/* Per-User Source Settings (visible to all logged-in users) */}
-        <UserSourceSettings />
-
-        {/* Per-User Danmaku Settings (visible to all logged-in users) */}
-        <UserDanmakuSettings />
-
-        {/* Source Management */}
-        <PermissionGate permission="source_management">
-          <SourceSettings
-            sources={sources}
-            onSourcesChange={handleSourcesChange}
-            onRestoreDefaults={() => setIsRestoreDefaultsDialogOpen(true)}
-            onAddSource={() => {
-              setEditingSource(null);
-              setIsAddModalOpen(true);
-            }}
-            onEditSource={handleEditSource}
-          />
-        </PermissionGate>
-
-        {/* Sort Options */}
-        <SortSettings
-          sortBy={sortBy}
-          onSortChange={handleSortChange}
+        <ExportModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          onExport={handleExport}
         />
 
-        {/* Data Management */}
-        <PermissionGate permission="data_management">
-          <DataSettings
-            onExport={() => setIsExportModalOpen(true)}
-            onImport={() => setIsImportModalOpen(true)}
-            onReset={() => setIsResetDialogOpen(true)}
-          />
-        </PermissionGate>
+        <ImportModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          onImportFile={handleImportFile}
+          onImportLink={handleImportLink}
+          subscriptions={subscriptions}
+          onAddSubscription={handleAddSubscription}
+          onRemoveSubscription={handleRemoveSubscription}
+          onRefreshSubscription={handleRefreshSubscription}
+        />
+
+        <ConfirmDialog
+          isOpen={isRestoreDefaultsDialogOpen}
+          title="恢复默认源"
+          message="这将重置所有视频源为默认配置。自定义源将被删除。是否继续？"
+          confirmText="恢复"
+          cancelText="取消"
+          onConfirm={handleRestoreDefaults}
+          onCancel={() => setIsRestoreDefaultsDialogOpen(false)}
+        />
+
+        <ConfirmDialog
+          isOpen={isResetDialogOpen}
+          title="清除所有数据"
+          message="这将删除所有设置、历史记录、Cookie 和缓存。此操作不可撤销。是否继续？"
+          confirmText="清除"
+          cancelText="取消"
+          onConfirm={handleResetAll}
+          onCancel={() => setIsResetDialogOpen(false)}
+          dangerous
+        />
       </div>
-
-      {/* Modals */}
-      <AddSourceModal
-        isOpen={isAddModalOpen}
-        onClose={() => {
-          setIsAddModalOpen(false);
-          setEditingSource(null);
-        }}
-        onAdd={handleAddSource}
-        existingIds={sources.map(s => s.id)}
-        initialValues={editingSource}
-      />
-
-      <ExportModal
-        isOpen={isExportModalOpen}
-        onClose={() => setIsExportModalOpen(false)}
-        onExport={handleExport}
-      />
-
-      <ImportModal
-        isOpen={isImportModalOpen}
-        onClose={() => setIsImportModalOpen(false)}
-        onImportFile={handleImportFile}
-        onImportLink={handleImportLink}
-        subscriptions={subscriptions}
-        onAddSubscription={handleAddSubscription}
-        onRemoveSubscription={handleRemoveSubscription}
-        onRefreshSubscription={handleRefreshSubscription}
-      />
-
-      <ConfirmDialog
-        isOpen={isRestoreDefaultsDialogOpen}
-        title="恢复默认源"
-        message="这将重置所有视频源为默认配置。自定义源将被删除。是否继续？"
-        confirmText="恢复"
-        cancelText="取消"
-        onConfirm={handleRestoreDefaults}
-        onCancel={() => setIsRestoreDefaultsDialogOpen(false)}
-      />
-
-      <ConfirmDialog
-        isOpen={isResetDialogOpen}
-        title="清除所有数据"
-        message="这将删除所有设置、历史记录、Cookie 和缓存。此操作不可撤销。是否继续？"
-        confirmText="清除"
-        cancelText="取消"
-        onConfirm={handleResetAll}
-        onCancel={() => setIsResetDialogOpen(false)}
-        dangerous
-      />
-    </div>
+    </SettingsPasswordGate>
   );
 }

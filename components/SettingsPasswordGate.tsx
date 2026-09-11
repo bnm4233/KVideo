@@ -1,89 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Lock, User } from 'lucide-react';
-import { clearSession, getSession, setSession, type AuthSession } from '@/lib/store/auth-store';
-import { resolvePasswordGateState } from '@/lib/auth/password-gate-state';
-import { useSubscriptionSync } from '@/lib/hooks/useSubscriptionSync';
-import { hasStoredAppSetting, settingsStore } from '@/lib/store/settings-store';
-import { useIPTVStore } from '@/lib/store/iptv-store';
+import { getSession, setSession, type AuthSession } from '@/lib/store/auth-store';
 
 type LoginMode = 'none' | 'legacy_password' | 'managed';
-
-function syncIPTVSources(rawValue: string) {
-  const iptvStore = useIPTVStore.getState();
-
-  let entries: { name: string; url: string }[] = [];
-
-  try {
-    const parsed = JSON.parse(rawValue);
-    if (Array.isArray(parsed)) {
-      entries = parsed.filter((item: unknown): item is { name: string; url: string } => {
-        if (!item || typeof item !== 'object') return false;
-        const candidate = item as { name?: unknown; url?: unknown };
-        return typeof candidate.url === 'string';
-      });
-    }
-  } catch {
-    if (rawValue.includes('http')) {
-      const urls = rawValue.split(',').map((value) => value.trim()).filter((value) => value.startsWith('http'));
-      entries = urls.map((url, index) => ({
-        name: urls.length > 1 ? `直播源 ${index + 1}` : '直播源',
-        url,
-      }));
-    }
-  }
-
-  iptvStore.syncBuiltinSources(entries);
-}
-
-function syncMergeSources(rawValue: string) {
-  const enabled = rawValue === 'true' || rawValue === '1';
-  if (!enabled) return;
-
-  const settings = settingsStore.getSettings();
-  if (settings.searchDisplayMode !== 'grouped') {
-    settingsStore.saveSettings({
-      ...settings,
-      searchDisplayMode: 'grouped',
-    });
-  }
-}
-
-function syncDanmakuApiUrl(rawValue: string) {
-  if (!rawValue || hasStoredAppSetting('danmakuApiUrl')) return;
-
-  const settings = settingsStore.getSettings();
-  if (settings.danmakuApiUrl !== rawValue) {
-    settingsStore.saveSettings({
-      ...settings,
-      danmakuApiUrl: rawValue,
-    });
-  }
-}
-
-function applyRuntimeConfig(data: {
-  subscriptionSources?: string;
-  iptvSources?: string;
-  mergeSources?: string;
-  danmakuApiUrl?: string;
-}) {
-  if (data.subscriptionSources) {
-    settingsStore.syncEnvSubscriptions(data.subscriptionSources);
-  }
-
-  if (data.iptvSources) {
-    syncIPTVSources(data.iptvSources);
-  }
-
-  if (data.mergeSources) {
-    syncMergeSources(data.mergeSources);
-  }
-
-  if (data.danmakuApiUrl) {
-    syncDanmakuApiUrl(data.danmakuApiUrl);
-  }
-}
 
 function toAuthSession(session: {
   accountId: string;
@@ -105,23 +27,23 @@ function toAuthSession(session: {
   };
 }
 
-export function PasswordGate({
-  children,
-  hasAuth: initialHasAuth,
-}: {
-  children: React.ReactNode;
-  hasAuth: boolean;
-}) {
-  useSubscriptionSync();
-
+/**
+ * Guards the settings page behind the access password (ACCESS_PASSWORD / ACCOUNTS
+ * or managed accounts). The rest of the app stays public.
+ *
+ * - If the visitor already holds a valid session, they pass straight through.
+ * - If no auth is configured at all, settings stay public.
+ * - Otherwise a password (and username, in managed mode) is required.
+ */
+export function SettingsPasswordGate({ children }: { children: React.ReactNode }) {
   const [isLocked, setIsLocked] = useState(true);
+  const [isClient, setIsClient] = useState(false);
+  const [persistSession, setPersistSession] = useState(true);
+  const [loginMode, setLoginMode] = useState<LoginMode>('none');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isClient, setIsClient] = useState(false);
-  const [persistSession, setPersistSession] = useState(true);
   const [isValidating, setIsValidating] = useState(false);
-  const [loginMode, setLoginMode] = useState<LoginMode>('none');
 
   useEffect(() => {
     let mounted = true;
@@ -146,40 +68,32 @@ export function PasswordGate({
 
         setPersistSession(config.persistSession);
         setLoginMode(config.loginMode || 'none');
-        applyRuntimeConfig(config);
 
         const serverSession = sessionStatus.authenticated && sessionStatus.session
           ? toAuthSession(sessionStatus.session)
           : null;
-        const gateState = resolvePasswordGateState({
-          hasAuth: !!config.hasAuth,
-          serverSession,
-          mirroredSession,
-          persistSession: config.persistSession,
-        });
 
-        if (gateState.action === 'unlock-session') {
-          setSession(gateState.session, gateState.persistSession);
+        if (serverSession) {
+          setSession(serverSession, config.persistSession);
           setIsLocked(false);
           setIsClient(true);
           return;
         }
 
-        if (gateState.action === 'unlock-public') {
+        // No auth configured -> settings are public.
+        if (!config.hasAuth && !mirroredSession) {
           setIsLocked(false);
           setIsClient(true);
           return;
         }
 
-        if (gateState.clearMirroredSession) {
-          clearSession();
-        }
-
+        // A stale mirrored session without a valid cookie must re-authenticate.
         setIsLocked(true);
         setIsClient(true);
       } catch {
         if (!mounted) return;
-        setIsLocked(initialHasAuth && !mirroredSession);
+        // Fail open so a broken auth API never locks settings out entirely.
+        setIsLocked(false);
         setIsClient(true);
       }
     };
@@ -189,7 +103,7 @@ export function PasswordGate({
     return () => {
       mounted = false;
     };
-  }, [initialHasAuth]);
+  }, []);
 
   const handleUnlock = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -226,7 +140,7 @@ export function PasswordGate({
 
     setError(loginMode === 'managed' ? '用户名或密码错误' : '密码错误');
     setIsValidating(false);
-    const form = document.getElementById('password-form');
+    const form = document.getElementById('settings-password-form');
     form?.classList.add('animate-shake');
     setTimeout(() => form?.classList.remove('animate-shake'), 500);
   };
@@ -240,10 +154,10 @@ export function PasswordGate({
   const showManagedFields = loginMode === 'managed';
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--bg-color)] bg-[image:var(--bg-image)] text-[var(--text-color)]">
+    <div className="min-h-screen flex items-center justify-center bg-[var(--bg-color)] bg-[image:var(--bg-image)] text-[var(--text-color)]">
       <div className="w-full max-w-md p-4">
         <form
-          id="password-form"
+          id="settings-password-form"
           onSubmit={handleUnlock}
           className="bg-[var(--glass-bg)] backdrop-blur-[25px] saturate-[180%] border border-[var(--glass-border)] rounded-[var(--radius-2xl)] p-8 shadow-[var(--shadow-md)] flex flex-col items-center gap-6 transition-all duration-[0.4s] cubic-bezier(0.2,0.8,0.2,1)"
         >
@@ -252,9 +166,9 @@ export function PasswordGate({
           </div>
 
           <div className="text-center space-y-2">
-            <h2 className="text-2xl font-bold">访问受限</h2>
+            <h2 className="text-2xl font-bold">设置受保护</h2>
             <p className="text-[var(--text-color-secondary)]">
-              {showManagedFields ? '请输入用户名和密码以继续' : '请输入访问密码以继续'}
+              {showManagedFields ? '请输入用户名和密码以进入设置' : '请输入访问密码以进入设置'}
             </p>
           </div>
 
@@ -287,7 +201,7 @@ export function PasswordGate({
                   setPassword(event.target.value);
                   setError('');
                 }}
-                placeholder={showManagedFields ? '输入密码...' : '输入密码...'}
+                placeholder="输入密码..."
                 className={`w-full px-4 py-3 rounded-[var(--radius-2xl)] bg-[var(--glass-bg)] border ${error ? 'border-red-500' : 'border-[var(--glass-border)]'} focus:outline-none focus:border-[var(--accent-color)] focus:shadow-[0_0_0_3px_color-mix(in_srgb,var(--accent-color)_30%,transparent)] transition-all duration-[0.4s] cubic-bezier(0.2,0.8,0.2,1) text-[var(--text-color)] placeholder-[var(--text-color-secondary)]`}
                 autoFocus={!showManagedFields}
                 autoComplete={showManagedFields ? 'current-password' : 'off'}
@@ -304,9 +218,16 @@ export function PasswordGate({
               disabled={isValidating}
               className="w-full py-3 px-4 bg-[var(--accent-color)] text-white font-bold rounded-[var(--radius-2xl)] hover:translate-y-[-2px] hover:brightness-110 shadow-[var(--shadow-sm)] hover:shadow-[0_4px_8px_var(--shadow-color)] active:translate-y-0 active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isValidating ? '验证中...' : '登录'}
+              {isValidating ? '验证中...' : '进入设置'}
             </button>
           </div>
+
+          <Link
+            href="/"
+            className="text-sm text-[var(--text-color-secondary)] hover:text-[var(--text-color)] transition-colors"
+          >
+            返回首页
+          </Link>
         </form>
       </div>
       <style jsx global>{`

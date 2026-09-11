@@ -8,7 +8,7 @@ import { TVProvider } from "@/lib/contexts/TVContext";
 import { TVNavigationInitializer } from "@/components/TVNavigationInitializer";
 import { Analytics } from "@vercel/analytics/react";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
-import { PasswordGate } from "@/components/PasswordGate";
+import { RuntimeConfigInitializer } from "@/components/RuntimeConfigInitializer";
 import { siteConfig } from "@/lib/config/site-config";
 import { AdKeywordsInjector } from "@/components/AdKeywordsInjector";
 import { BackToTop } from "@/components/ui/BackToTop";
@@ -120,22 +120,12 @@ export default async function RootLayout({
 
               <TVProvider>
                 <TVNavigationInitializer />
-                <PasswordGate hasAuth={!!(
-                  process.env.ADMIN_PASSWORD ||
-                  process.env.ACCOUNTS ||
-                  process.env.ACCESS_PASSWORD ||
-                  (
-                    process.env.AUTH_SECRET &&
-                    process.env.UPSTASH_REDIS_REST_URL &&
-                    process.env.UPSTASH_REDIS_REST_TOKEN
-                  )
-                )}>
-                  <AutoSync />
-                  <AdKeywordsWrapper />
-                  {children}
-                  <BackToTop />
-                  <ScrollPositionManager />
-                </PasswordGate>
+                <AutoSync />
+                <AdKeywordsWrapper />
+                <RuntimeConfigInitializer />
+                {children}
+                <BackToTop />
+                <ScrollPositionManager />
               </TVProvider>
               {vercelAnalyticsEnabled ? <Analytics /> : null}
               <ServiceWorkerRegister />
