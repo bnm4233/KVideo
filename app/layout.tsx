@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -125,7 +125,9 @@ export default async function RootLayout({
                 <RuntimeConfigInitializer />
                 {children}
                 <BackToTop />
-                <ScrollPositionManager />
+                <Suspense fallback={null}>
+                  <ScrollPositionManager />
+                </Suspense>
               </TVProvider>
               {vercelAnalyticsEnabled ? <Analytics /> : null}
               <ServiceWorkerRegister />
