@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>ad</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: transparent;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="ad-slot"></div>
+    <script>
+      /* 独立 iframe 内加载横幅广告：atOptions 只作用于当前 iframe，互不覆盖 */
+      (function () {
+        var params = new URLSearchParams(window.location.search);
+        var key = params.get('key') || '';
+        var width = parseInt(params.get('w') || '0', 10);
+        var height = parseInt(params.get('h') || '0', 10);
+
+        if (!/^[a-z0-9]+$/i.test(key) || !width || !height) return;
+
+        window.atOptions = {
+          key: key,
+          format: 'iframe',
+          height: height,
+          width: width,
+          params: {}
+        };
+
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src =
+          'https://www.highrevenueformat.com/' + key + '/invoke.js';
+        script.async = false;
+        document.getElementById('ad-slot').appendChild(script);
+      })();
+    </script>
+  </body>
+</html>

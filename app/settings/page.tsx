@@ -18,6 +18,7 @@ import { PermissionGate } from '@/components/PermissionGate';
 import { SettingsPasswordGate } from '@/components/SettingsPasswordGate';
 import { hasPermission } from '@/lib/store/auth-store';
 import { useSettingsPage } from './hooks/useSettingsPage';
+import { CompactAdBanner } from '@/components/ads/AdSlots';
 
 export default function SettingsPage() {
   const {
@@ -159,6 +160,9 @@ export default function SettingsPage() {
               onReset={() => setIsResetDialogOpen(true)}
             />
           </PermissionGate>
+
+          {/* Ad - 设置页底部横幅 */}
+          <CompactAdBanner />
         </div>
 
         {/* Modals */}
