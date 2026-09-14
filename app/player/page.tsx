@@ -21,7 +21,6 @@ import { premiumModeSettingsStore } from '@/lib/store/premium-mode-settings';
 import { SegmentedControl } from '@/components/ui/SegmentedControl';
 import { getSourceName } from '@/lib/utils/source-names';
 import { retrieveGroupedSources, storeGroupedSources } from '@/lib/utils/grouped-sources-cache';
-import { ResponsiveAdBanner } from '@/components/ads/AdSlots';
 
 type PlayerViewportMode = 'standard' | 'wide' | 'cinema';
 
@@ -563,11 +562,6 @@ function PlayerContent() {
               </div>
             </div>
           </div>
-
-            {/* Ad - 播放页底部横幅 */}
-            <div className="pt-2">
-              <ResponsiveAdBanner />
-            </div>
           </div>
         )}
       </main>

@@ -14,7 +14,6 @@ import { hasPermission, getSession } from '@/lib/store/auth-store';
 import { useRuntimeFeatures } from '@/components/RuntimeFeaturesProvider';
 import Link from 'next/link';
 import type { M3UChannel } from '@/lib/utils/m3u-parser';
-import { ResponsiveAdBanner } from '@/components/ads/AdSlots';
 
 export default function IPTVPage() {
   const { iptvEnabled, restrictionSummary } = useRuntimeFeatures();
@@ -155,11 +154,6 @@ export default function IPTVPage() {
               />
             </div>
           )}
-
-          {/* Ad - 频道列表下方横幅 */}
-          <div className="mt-6">
-            <ResponsiveAdBanner />
-          </div>
         </div>
 
         {/* Player Overlay */}

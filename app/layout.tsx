@@ -9,8 +9,6 @@ import { TVNavigationInitializer } from "@/components/TVNavigationInitializer";
 import { Analytics } from "@vercel/analytics/react";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { RuntimeConfigInitializer } from "@/components/RuntimeConfigInitializer";
-import { AdGlobalScripts } from "@/components/ads/AdGlobalScripts";
-import { SideRailAds } from "@/components/ads/AdSlots";
 import { siteConfig } from "@/lib/config/site-config";
 import { AdKeywordsInjector } from "@/components/AdKeywordsInjector";
 import { BackToTop } from "@/components/ui/BackToTop";
@@ -133,8 +131,6 @@ export default async function RootLayout({
               </TVProvider>
               {vercelAnalyticsEnabled ? <Analytics /> : null}
               <ServiceWorkerRegister />
-              <AdGlobalScripts />
-              <SideRailAds />
             </RuntimeFeaturesProvider>
           </ThemeProvider>
         </SiteIconProvider>

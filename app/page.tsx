@@ -9,7 +9,6 @@ import { Navbar } from '@/components/layout/Navbar';
 import { SearchResults } from '@/components/home/SearchResults';
 import { useHomePage } from '@/lib/hooks/useHomePage';
 import { useLatencyPing } from '@/lib/hooks/useLatencyPing';
-import { ResponsiveAdBanner, NativeAdBanner } from '@/components/ads/AdSlots';
 
 function HomePage() {
   const {
@@ -60,11 +59,6 @@ function HomePage() {
         />
       </div>
 
-      {/* Ad - 搜索框下方横幅（桌面 728x90 / 移动 320x50） */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
-        <ResponsiveAdBanner />
-      </div>
-
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
         {/* Results Section */}
@@ -89,11 +83,6 @@ function HomePage() {
           <NoResults onReset={handleReset} />
         )}
       </main>
-
-      {/* Ad - 内容底部原生广告 */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-        <NativeAdBanner />
-      </div>
 
       {/* Favorites Sidebar - Left */}
       <FavoritesSidebar />

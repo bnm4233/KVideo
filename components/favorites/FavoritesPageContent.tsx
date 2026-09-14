@@ -9,7 +9,6 @@ import { FavoritesSidebar } from '@/components/favorites/FavoritesSidebar';
 import { WatchHistorySidebar } from '@/components/history/WatchHistorySidebar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useFavorites } from '@/lib/store/favorites-store';
-import { RectangleAdBanner } from '@/components/ads/AdSlots';
 
 interface FavoritesPageContentProps {
   isPremium?: boolean;
@@ -54,13 +53,6 @@ export function FavoritesPageContent({
 
         <FavoritesGrid favorites={sortedFavorites} isPremium={isPremium} />
       </main>
-
-      {/* Ad - 收藏页底部横幅（高级模式不展示） */}
-      {!isPremium && (
-        <div className="max-w-7xl mx-auto px-4 pb-8">
-          <RectangleAdBanner />
-        </div>
-      )}
 
       <FavoritesSidebar isPremium={isPremium} />
       <WatchHistorySidebar isPremium={isPremium} />
