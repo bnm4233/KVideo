@@ -32,8 +32,9 @@ async function AdKeywordsWrapper() {
 
   try {
     // 1. Try reading from file (Docker runtime support)
+    // Edge runtime（Cloudflare Pages / next-on-pages）没有 fs / path，跳过文件方式
     const keywordsFile = process.env.AD_KEYWORDS_FILE;
-    if (keywordsFile) {
+    if (keywordsFile && process.env.NEXT_RUNTIME !== 'edge') {
       // Resolve absolute path or relative to CWD
       const filePath = path.isAbsolute(keywordsFile)
         ? keywordsFile

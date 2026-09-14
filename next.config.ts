@@ -118,6 +118,23 @@ const nextConfig: NextConfig = {
     formats: ['image/webp'],
     minimumCacheTTL: 60,
   },
+
+  // Cloudflare Pages 使用 @cloudflare/next-on-pages，所有页面运行在 Edge runtime，
+  // 不存在 fs / path 等 Node 内置模块。app/layout.tsx 与 lib/server/site-icon.ts
+  // 仍为 Docker / 自托管保留文件读取能力（AD_KEYWORDS_FILE / SITE_ICON_FILE），
+  // 这里让 Edge 构建把这两个模块解析成空对象，避免 "Can't resolve 'fs'" 构建失败。
+  // 运行时已通过 NEXT_RUNTIME 判断跳过文件读取，不会真正调用到它们。
+  webpack: (config, { nextRuntime }) => {
+    if (nextRuntime === 'edge') {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+      };
+    }
+
+    return config;
+  },
 };
 
 export default nextConfig;

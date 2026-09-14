@@ -4,6 +4,17 @@ import path from 'path';
 export const DEFAULT_SITE_ICON_PATH = '/icon.png';
 const LEGACY_SITE_ICON_ROUTE = '/api/site-icon';
 
+/**
+ * Cloudflare Pages 通过 @cloudflare/next-on-pages 把所有页面跑在 Edge runtime，
+ * 那里没有 fs / path 等 Node 内置模块。next.config.ts 会在 Edge 构建时把这两个模块
+ * 解析成空对象以保证构建通过，所以这里必须在 Edge 下避免真正调用它们，
+ * 否则会拿到空对象并抛出 "isAbsolute is not a function"。
+ * 文件方式（SITE_ICON_FILE）因此只对 Node 部署（Docker / 自托管）生效。
+ */
+function canReadFiles(): boolean {
+  return process.env.NEXT_RUNTIME !== 'edge';
+}
+
 function getMimeType(filePath: string): string {
   switch (path.extname(filePath).toLowerCase()) {
     case '.avif':
@@ -58,6 +69,10 @@ function normalizeIconUrl(iconUrl?: string | null): string | null {
 }
 
 async function resolveIconFileAsDataUrl(iconFile: string): Promise<string | null> {
+  if (!canReadFiles()) {
+    return null;
+  }
+
   const resolvedFilePaths = getIconFileCandidates(iconFile);
   let lastError: unknown = null;
 
