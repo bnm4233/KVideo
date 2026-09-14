@@ -7,6 +7,9 @@ import React from 'react';
 import { Card } from '@/components/ui/Card';
 import { Icons } from '@/components/ui/Icon';
 
+/** 首屏可见的卡片数量：只给这部分图片高优先级，其余走懒加载 */
+const PRIORITY_CARD_COUNT = 6;
+
 interface PremiumContentGridProps {
     videos: Video[];
     loading: boolean;
@@ -31,7 +34,7 @@ export function PremiumContentGrid({
     return (
         <>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-                {videos.map((video) => (
+                {videos.map((video, index) => (
                     <Link
                         key={`${video.source}-${video.vod_id}`}
                         href={`/premium?q=${encodeURIComponent(video.vod_name)}`}
@@ -60,7 +63,8 @@ export function PremiumContentGrid({
                                         fill
                                         sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
                                         className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-[var(--radius-2xl)]"
-                                        loading="eager"
+                                        loading={index < PRIORITY_CARD_COUNT ? 'eager' : 'lazy'}
+                                        fetchPriority={index < PRIORITY_CARD_COUNT ? 'high' : 'auto'}
                                         unoptimized
                                     />
                                 ) : (

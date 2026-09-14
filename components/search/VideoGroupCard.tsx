@@ -37,6 +37,8 @@ interface VideoGroupCardProps {
     latencies?: Record<string, number>;
     resolution?: ResolutionInfo | null;
     isProbing?: boolean;
+    /** 首屏可见的卡片标记为高优先级，其余交给浏览器懒加载 */
+    priority?: boolean;
 }
 
 export const VideoGroupCard = memo<VideoGroupCardProps>(({
@@ -48,6 +50,7 @@ export const VideoGroupCard = memo<VideoGroupCardProps>(({
     latencies = {},
     resolution,
     isProbing = false,
+    priority = false,
 }) => {
     const { representative, videos, name } = group;
     const displayRemarks = useMemo(() => {
@@ -130,7 +133,8 @@ export const VideoGroupCard = memo<VideoGroupCardProps>(({
                                 fill
                                 className="object-cover rounded-[var(--radius-2xl)]"
                                 sizes="(max-width: 640px) 33vw, (max-width: 1024px) 20vw, 16vw"
-                                loading="eager"
+                                loading={priority ? 'eager' : 'lazy'}
+                                fetchPriority={priority ? 'high' : 'auto'}
                                 unoptimized
                                 referrerPolicy="no-referrer"
                                 onError={(e) => {

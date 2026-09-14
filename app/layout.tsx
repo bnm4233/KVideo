@@ -1,5 +1,5 @@
 import React, { Suspense } from 'react';
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { AutoSync } from '@/components/AutoSync'; // <-- 引入了自动同步组件
@@ -10,6 +10,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { ServiceWorkerRegister } from "@/components/ServiceWorkerRegister";
 import { RuntimeConfigInitializer } from "@/components/RuntimeConfigInitializer";
 import { siteConfig } from "@/lib/config/site-config";
+import { getSiteUrl } from "@/lib/config/site-url";
 import { AdKeywordsInjector } from "@/components/AdKeywordsInjector";
 import { BackToTop } from "@/components/ui/BackToTop";
 import { ScrollPositionManager } from "@/components/ScrollPositionManager";
@@ -64,14 +65,73 @@ async function AdKeywordsWrapper() {
   return <AdKeywordsInjector keywords={keywords} />;
 }
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#000000',
+};
+
 export async function generateMetadata(): Promise<Metadata> {
   const siteIconSrc = await resolveSiteIconSrc();
+  const siteUrl = getSiteUrl();
 
   return {
-    title: siteConfig.title,
+    metadataBase: new URL(siteUrl),
+    title: {
+      default: siteConfig.title,
+      template: `%s | ${siteConfig.name}`,
+    },
     description: siteConfig.description,
+    applicationName: siteConfig.name,
+    keywords: siteConfig.keywords,
+    manifest: '/manifest.json',
+    // canonical 刻意不在根布局声明：它表示「本页自身地址」，
+    // 写在这里会被所有子页面继承成首页地址，导致内容页被判为重复内容。
     icons: {
       icon: siteIconSrc,
+      apple: siteIconSrc,
+    },
+    appleWebApp: {
+      capable: true,
+      title: siteConfig.name,
+      statusBarStyle: 'black-translucent',
+    },
+    formatDetection: {
+      telephone: false,
+      email: false,
+      address: false,
+    },
+    openGraph: {
+      type: 'website',
+      siteName: siteConfig.name,
+      title: siteConfig.title,
+      description: siteConfig.description,
+      url: '/',
+      locale: 'zh_CN',
+      images: [
+        {
+          url: siteIconSrc,
+          alt: siteConfig.name,
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: siteConfig.title,
+      description: siteConfig.description,
+      images: [siteIconSrc],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+        'max-image-preview': 'large',
+        'max-snippet': -1,
+        'max-video-preview': -1,
+      },
     },
   };
 }
@@ -92,17 +152,8 @@ export default async function RootLayout({
   return (
     <html lang="zh-CN" suppressHydrationWarning>
       <head>
-        {/* PWA Manifest */}
-        <link rel="manifest" href="/manifest.json" />
-        {/* Apple PWA Support */}
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="KVideo" />
-        <link rel="apple-touch-icon" href={siteIconSrc} />
-        {/* Theme Color (for browser address bar) */}
-        <meta name="theme-color" content="#000000" />
-        {/* Mobile viewport */}
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        {/* PWA manifest、Apple 主屏图标/状态栏、主题色与 viewport
+            统一由上面的 metadata / viewport 导出生成，此处不再手写重复标签。 */}
       </head>
       <body
         className="antialiased"

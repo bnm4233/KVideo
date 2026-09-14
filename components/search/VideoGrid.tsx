@@ -20,6 +20,9 @@ interface VideoGridProps {
   latencies?: Record<string, number>;
 }
 
+/** 首屏可见的卡片数量：只给这部分图片高优先级，其余走懒加载 */
+const PRIORITY_CARD_COUNT = 6;
+
 export const VideoGrid = memo(function VideoGrid({
   videos,
   className = '',
@@ -212,7 +215,7 @@ export const VideoGrid = memo(function VideoGrid({
         role="list"
         aria-label="视频搜索结果"
       >
-        {visibleItems.map((item) => {
+        {visibleItems.map((item, index) => {
           if (item.kind === 'group') {
             const isActive = activeCardId === item.cardId;
             const resolution = resolutions[`${item.group.representative.source}:${item.group.representative.vod_id}`];
@@ -227,6 +230,7 @@ export const VideoGrid = memo(function VideoGrid({
                 latencies={latencies}
                 resolution={resolution}
                 isProbing={isProbing && !resolution}
+                priority={index < PRIORITY_CARD_COUNT}
               />
             );
           }
@@ -245,6 +249,7 @@ export const VideoGrid = memo(function VideoGrid({
               latencies={latencies}
               resolution={resolution}
               isProbing={isProbing && !resolution}
+              priority={index < PRIORITY_CARD_COUNT}
             />
           );
         })}

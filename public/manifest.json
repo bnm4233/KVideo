@@ -1,7 +1,7 @@
 {
-    "name": "KVideo - 视频聚合平台",
-    "short_name": "KVideo",
-    "description": "多源视频聚合搜索和播放平台",
+    "name": "幕间影视 - 多源影视聚合搜索",
+    "short_name": "幕间影视",
+    "description": "幕间影视是支持多源检索的影视聚合站，一次搜索即可定位电影、电视剧、动漫、综艺与 IPTV 直播，直接在线播放。",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#000000",

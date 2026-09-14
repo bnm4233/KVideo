@@ -20,9 +20,11 @@ interface DoubanMovie {
 interface MovieCardProps {
   movie: DoubanMovie;
   onMovieClick: (movie: DoubanMovie) => void;
+  /** 首屏可见的卡片标记为高优先级，其余交给浏览器懒加载 */
+  priority?: boolean;
 }
 
-export const MovieCard = memo(function MovieCard({ movie, onMovieClick }: MovieCardProps) {
+export const MovieCard = memo(function MovieCard({ movie, onMovieClick, priority = false }: MovieCardProps) {
   const [imageError, setImageError] = useState(false);
   const [fallbackError, setFallbackError] = useState(false);
 
@@ -55,7 +57,8 @@ export const MovieCard = memo(function MovieCard({ movie, onMovieClick }: MovieC
               fill
               className="object-cover transition-transform duration-300 group-hover:scale-105 rounded-[var(--radius-2xl)]"
               sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-              loading="eager"
+              loading={priority ? 'eager' : 'lazy'}
+              fetchPriority={priority ? 'high' : 'auto'}
               unoptimized
               referrerPolicy="no-referrer"
               onError={() => setImageError(true)}

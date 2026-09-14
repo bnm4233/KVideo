@@ -6,6 +6,9 @@
 import { MovieCard } from './MovieCard';
 import { Icons } from '@/components/ui/Icon';
 
+/** 首屏可见的卡片数量：只给这部分图片高优先级，其余走懒加载 */
+const PRIORITY_CARD_COUNT = 6;
+
 interface DoubanMovie {
   id: string;
   title: string;
@@ -38,11 +41,12 @@ export function MovieGrid({
   return (
     <>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6">
-        {movies.map((movie) => (
+        {movies.map((movie, index) => (
           <MovieCard
             key={movie.id}
             movie={movie}
             onMovieClick={onMovieClick}
+            priority={index < PRIORITY_CARD_COUNT}
           />
         ))}
       </div>
